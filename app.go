@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	git "github.com/go-git/go-git/v5"
-	. "github.com/go-git/go-git/v5/_examples"
-	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/storage/memory"
 )
 
 // Data contain all the information recovered of the repositories
@@ -63,32 +63,18 @@ func readData(data []byte) (repos []RepoInfo) {
 	return
 }
 
-func readRepo(path string) {
-	// We instantiate a new repository targeting the given path (the .git folder)
-	r, err := git.PlainOpen(path)
-	CheckIfError(err)
-
-	// Length of the HEAD history
-	Info("git rev-list HEAD --count")
-
-	// ... retrieving the HEAD reference
-	ref, err := r.Head()
-	CheckIfError(err)
-
-	// ... retrieves the commit history
-	cIter, err := r.Log(&git.LogOptions{From: ref.Hash()})
-	CheckIfError(err)
-
-	// ... just iterates over the commits
-	var cCount int
-	err = cIter.ForEach(func(c *object.Commit) error {
-		cCount++
-
-		return nil
+func readRepo(path string, hash string) {
+	repo, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
+		URL: path,
 	})
-	CheckIfError(err)
-
-	fmt.Println(cCount)
+	if err != nil {
+		log.Fatalf("Sorry, but we haven't be able to open the repository %s", err)
+	}
+	commit, err := repo.CommitObject(plumbing.NewHash(hash))
+	if err != nil {
+		log.Fatalf("Sorry, but we haven't be able to read the commit %s", err)
+	}
+	fmt.Printf(commit.String())
 }
 
 func main() {
@@ -99,7 +85,7 @@ func main() {
 		file := downloadFile(*url)
 		repos := readData(file)
 		for _, element := range repos {
-			readRepo(element.Url)
+			readRepo(element.Url, element.Hash)
 		}
 	} else {
 		flag.Usage()
