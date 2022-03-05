@@ -48,7 +48,7 @@ type RepoInfo struct {
 
 // This function is in charge of download a file and put the information in memory
 // it put all the data in a []byte array in order to read easly.
-func Downloadfile(uri string) (data []byte) {
+func downloadFile(uri string) (data []byte) {
 	resp, err := http.Get(uri)
 	if err != nil {
 		log.Fatalf("Failed to get URL %s, please make sure that the URL is correct", err)
@@ -63,7 +63,7 @@ func Downloadfile(uri string) (data []byte) {
 }
 
 // This
-func Readdata(data []byte) (repos []RepoInfo) {
+func readData(data []byte) (repos []RepoInfo) {
 	var repo RepoInfo
 	scanner := bufio.NewScanner(strings.NewReader(string(data)))
 	for scanner.Scan() {
@@ -76,7 +76,7 @@ func Readdata(data []byte) (repos []RepoInfo) {
 	return
 }
 
-func Readrepo(path string, hash string) (files []object.File) {
+func readRepo(path string, hash string) (files []object.File) {
 	repo, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 		URL: path,
 	})
@@ -91,11 +91,11 @@ func Readrepo(path string, hash string) (files []object.File) {
 	// for _, file := range findDokerfiles(commit.Tree()) {
 	// 	fmt.Printf("File: %s\n", file.Name)
 	// }
-	files = Finddokerfiles(commit.Tree())
+	files = findDokerfiles(commit.Tree())
 	return
 }
 
-func Finddokerfiles(tree *object.Tree, err error) (files []object.File) {
+func findDokerfiles(tree *object.Tree, err error) (files []object.File) {
 	tree.Files().ForEach(func(f *object.File) error {
 		match, err := regexp.MatchString(`(?:^|\W)Dockerfile$`, f.Name)
 		if f.Mode.IsFile() && match {
@@ -106,7 +106,7 @@ func Finddokerfiles(tree *object.Tree, err error) (files []object.File) {
 	return
 }
 
-func Readfile(file object.File) (from []string) {
+func readFile(file object.File) (from []string) {
 	lines, err := file.Lines()
 	if err != nil {
 		log.Fatalf("Sorry, but we haven't be able to read the file %s", err)
@@ -122,16 +122,16 @@ func Readfile(file object.File) (from []string) {
 	return
 }
 
-func Defaultimplementation(url *string) (output string) {
+func defaultImplementation(url *string) (output string) {
 	output = "{\n  \"data\": {\n"
-	imputFile := Downloadfile(*url)
-	repos := Readdata(imputFile)
+	imputFile := downloadFile(*url)
+	repos := readData(imputFile)
 	for i, element := range repos {
 		output = output + "    \"" + element.Url + ":" + element.Hash + "\": {\n"
-		dockerfiles := Readrepo(element.Url, element.Hash)
+		dockerfiles := readRepo(element.Url, element.Hash)
 		for j, file := range dockerfiles {
 			output = output + "      \"" + file.Name + "\": [\n"
-			fromStrings := Readfile(file)
+			fromStrings := readFile(file)
 			for k, imageFrom := range fromStrings {
 				if k < len(fromStrings)-1 {
 					output = output + "        \"" + imageFrom + "\",\n"
@@ -155,20 +155,20 @@ func Defaultimplementation(url *string) (output string) {
 	return
 }
 
-func Jsonimplementation(url *string) (output string) {
+func jsonImplementation(url *string) (output string) {
 	var tempJson jsonWrapper
 	var tempData data
 	var tempRepo repository
 	var tempDocker dockerfile
-	imputFile := Downloadfile(*url)
-	repos := Readdata(imputFile)
+	imputFile := downloadFile(*url)
+	repos := readData(imputFile)
 	for _, repo := range repos {
 		tempRepo.Url = repo.Url
 		tempRepo.Hash = repo.Hash
-		dockerfiles := Readrepo(repo.Url, repo.Hash)
+		dockerfiles := readRepo(repo.Url, repo.Hash)
 		for _, dockerfile := range dockerfiles {
 			tempDocker.Pathfile = dockerfile.Name
-			fromStrings := Readfile(dockerfile)
+			fromStrings := readFile(dockerfile)
 			for _, from := range fromStrings {
 				tempDocker.Froms = append(tempDocker.Froms, from)
 			}
