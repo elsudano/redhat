@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -15,6 +16,25 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/storage/memory"
 )
+
+type jsonWrapper struct {
+	Data data `json:"data"`
+}
+
+type data struct {
+	Repositories []repository `json:"repos"`
+}
+
+type repository struct {
+	Url         string       `json:"url"`
+	Hash        string       `json:"hash"`
+	Dockerfiles []dockerfile `json:"dockerfile"`
+}
+
+type dockerfile struct {
+	Pathfile string   `json:"path"`
+	Froms    []string `json:"from"`
+}
 
 type RepoInfo struct {
 	Url  string
@@ -94,41 +114,67 @@ func readFile(file object.File) (from []string) {
 	return
 }
 
-func defaultImplementation(url *string) {
-	jsonOutput := "{\n  \"data\": {\n"
-	file := downloadFile(*url)
-	repos := readData(file)
+func defaultImplementation(url *string) (output string) {
+	output = "{\n  \"data\": {\n"
+	imputFile := downloadFile(*url)
+	repos := readData(imputFile)
 	for i, element := range repos {
-		jsonOutput = jsonOutput + "    \"" + element.Url + ":" + element.Hash + "\": {\n"
+		output = output + "    \"" + element.Url + ":" + element.Hash + "\": {\n"
 		dockerfiles := readRepo(element.Url, element.Hash)
 		for j, file := range dockerfiles {
-			jsonOutput = jsonOutput + "      \"" + file.Name + "\": [\n"
+			output = output + "      \"" + file.Name + "\": [\n"
 			fromStrings := readFile(file)
 			for k, imageFrom := range fromStrings {
 				if k < len(fromStrings)-1 {
-					jsonOutput = jsonOutput + "        \"" + imageFrom + "\",\n"
+					output = output + "        \"" + imageFrom + "\",\n"
 				} else {
-					jsonOutput = jsonOutput + "        \"" + imageFrom + "\"\n"
+					output = output + "        \"" + imageFrom + "\"\n"
 				}
 			}
 			if j < len(dockerfiles)-1 {
-				jsonOutput = jsonOutput + "      ],\n"
+				output = output + "      ],\n"
 			} else {
-				jsonOutput = jsonOutput + "      ]\n"
+				output = output + "      ]\n"
 			}
 		}
 		if i < len(repos)-1 {
-			jsonOutput = jsonOutput + "    },\n"
+			output = output + "    },\n"
 		} else {
-			jsonOutput = jsonOutput + "    }\n"
+			output = output + "    }\n"
 		}
 	}
-	jsonOutput = jsonOutput + "  }\n}"
-	fmt.Printf(jsonOutput)
+	output = output + "  }\n}"
+	return
 }
 
-func jsonImplementation(url *string) {
-	log.Fatalf("Sorry, we haven't be able to complete this implementation yet, keep tuned")
+func jsonImplementation(url *string) (output string) {
+	var tempJson jsonWrapper
+	var tempData data
+	var tempRepo repository
+	var tempDocker dockerfile
+	imputFile := downloadFile(*url)
+	repos := readData(imputFile)
+	for _, repo := range repos {
+		tempRepo.Url = repo.Url
+		tempRepo.Hash = repo.Hash
+		dockerfiles := readRepo(repo.Url, repo.Hash)
+		for _, dockerfile := range dockerfiles {
+			tempDocker.Pathfile = dockerfile.Name
+			fromStrings := readFile(dockerfile)
+			for _, from := range fromStrings {
+				tempDocker.Froms = append(tempDocker.Froms, from)
+			}
+			tempRepo.Dockerfiles = append(tempRepo.Dockerfiles, tempDocker)
+		}
+		tempData.Repositories = append(tempData.Repositories, tempRepo)
+	}
+	tempJson.Data = tempData
+	json, err := json.Marshal(tempJson)
+	if err != nil {
+		log.Fatalf("Sorry, but we haven't be able to convert our struct to json format %s", err)
+	}
+	output = string(json)
+	return
 }
 
 func main() {
@@ -137,9 +183,9 @@ func main() {
 	flag.Parse()
 
 	if *url != "" && *fix {
-		jsonImplementation(url)
+		fmt.Printf("%+v\n", jsonImplementation(url))
 	} else if *url != "" {
-		defaultImplementation(url)
+		fmt.Printf(defaultImplementation(url))
 	} else {
 		flag.Usage()
 	}
