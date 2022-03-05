@@ -117,7 +117,7 @@ func readFile(file object.File) (from []string) {
 	return
 }
 
-func defaultImplementation(url *string) (output string) {
+func DefaultImplementation(url *string) (output string) {
 	output = "{\n  \"data\": {\n"
 	imputFile := downloadFile(*url)
 	repos := readData(imputFile)
@@ -150,7 +150,7 @@ func defaultImplementation(url *string) (output string) {
 	return
 }
 
-func jsonImplementation(url *string) (output string) {
+func JsonImplementation(url *string) (output string) {
 	var tempJson jsonWrapper
 	var tempData data
 	var tempRepo repository
