@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
 
 	git "github.com/go-git/go-git/v5"
@@ -51,7 +52,7 @@ func readData(data []byte) (repos []RepoInfo) {
 		repo.Url = temp[0]
 		repo.Hash = temp[1]
 		repos = append(repos, repo)
-		fmt.Printf("RepoURL: %s, RepoHash: %s\n", repo.Url, repo.Hash)
+		// fmt.Printf("RepoURL: %s, RepoHash: %s\n", repo.Url, repo.Hash)
 	}
 	return
 }
@@ -68,19 +69,19 @@ func readRepo(path string, hash string) {
 		log.Fatalf("Sorry, but we haven't be able to read the commit %s", err)
 	}
 	fmt.Printf(commit.String())
-	findDokerfile(commit.Tree())
+	for _, file := range findDokerfiles(commit.Tree()) {
+		fmt.Printf("File: %s\n", file.Name)
+	}
 }
 
-func findDokerfile(path_in *object.Tree, err error) (path_out string) {
-	for _, entry := range path_in.Entries {
-		if !entry.Mode.IsFile() {
-			path_out = entry.Name + "/" + findDokerfile(path_in.Tree(entry.Name))
-			fmt.Printf("Dir: %s\n", path_out)
-		} else {
-			path_out = entry.Name
-			fmt.Printf("File: %s\n", path_out)
+func findDokerfiles(tree *object.Tree, err error) (files []object.File) {
+	tree.Files().ForEach(func(f *object.File) error {
+		match, err := regexp.MatchString(`(?:^|\W)Dockerfile$`, f.Name)
+		if f.Mode.IsFile() && match {
+			files = append(files, *f)
 		}
-	}
+		return err
+	})
 	return
 }
 
