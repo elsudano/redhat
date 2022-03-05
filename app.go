@@ -79,7 +79,17 @@ func findDokerfiles(tree *object.Tree, err error) (files []object.File) {
 }
 
 func readFile(file object.File) (from []string) {
-	from = append(from, "from string")
+	lines, err := file.Lines()
+	if err != nil {
+		log.Fatalf("Sorry, but we haven't be able to read the file %s", err)
+	}
+	for _, line := range lines {
+		match, _ := regexp.MatchString(`^FROM`, line)
+		if match {
+			line = strings.Split(line, " ")[1]
+			from = append(from, line)
+		}
+	}
 	// log.Fatalf("Sorry, we haven't be able to complete this implementation yet, keep tuned")
 	return
 }
@@ -117,7 +127,7 @@ func defaultImplementation(url *string) {
 	fmt.Printf(jsonOutput)
 }
 
-func fixedImplementation(url *string) {
+func jsonImplementation(url *string) {
 	log.Fatalf("Sorry, we haven't be able to complete this implementation yet, keep tuned")
 }
 
@@ -127,7 +137,7 @@ func main() {
 	flag.Parse()
 
 	if *url != "" && *fix {
-		fixedImplementation(url)
+		jsonImplementation(url)
 	} else if *url != "" {
 		defaultImplementation(url)
 	} else {
