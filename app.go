@@ -78,28 +78,42 @@ func findDokerfiles(tree *object.Tree, err error) (files []object.File) {
 	return
 }
 
-func readFile(file object.File) (from string) {
-	log.Fatalf("Sorry, we haven't be able to complete this implementation yet, keep tuned")
+func readFile(file object.File) (from []string) {
+	from = append(from, "from string")
+	// log.Fatalf("Sorry, we haven't be able to complete this implementation yet, keep tuned")
 	return
 }
 
 func defaultImplementation(url *string) {
-	jsonOutput := "{\n\"data\": {\n"
+	jsonOutput := "{\n  \"data\": {\n"
 	file := downloadFile(*url)
 	repos := readData(file)
-	for _, element := range repos {
-		jsonOutput = jsonOutput + "\"" + element.Url + ":" + element.Hash + "\": {\n"
+	for i, element := range repos {
+		jsonOutput = jsonOutput + "    \"" + element.Url + ":" + element.Hash + "\": {\n"
 		dockerfiles := readRepo(element.Url, element.Hash)
-		for _, file := range dockerfiles {
-			jsonOutput = jsonOutput + `"` + file.Name + "\": [\n"
-			// for _, imageFrom := range readFile(file) {
-			// 	jsonOutput = jsonOutput + `"` + imageFrom + `",`
-			// }
-			jsonOutput = jsonOutput + "],\n"
+		for j, file := range dockerfiles {
+			jsonOutput = jsonOutput + "      \"" + file.Name + "\": [\n"
+			fromStrings := readFile(file)
+			for k, imageFrom := range fromStrings {
+				if k < len(fromStrings)-1 {
+					jsonOutput = jsonOutput + "        \"" + imageFrom + "\",\n"
+				} else {
+					jsonOutput = jsonOutput + "        \"" + imageFrom + "\"\n"
+				}
+			}
+			if j < len(dockerfiles)-1 {
+				jsonOutput = jsonOutput + "      ],\n"
+			} else {
+				jsonOutput = jsonOutput + "      ]\n"
+			}
 		}
-		jsonOutput = jsonOutput + "},\n"
+		if i < len(repos)-1 {
+			jsonOutput = jsonOutput + "    },\n"
+		} else {
+			jsonOutput = jsonOutput + "    }\n"
+		}
 	}
-	jsonOutput = jsonOutput + "}\n}"
+	jsonOutput = jsonOutput + "  }\n}"
 	fmt.Printf(jsonOutput)
 }
 
