@@ -16,15 +16,6 @@ import (
 	"github.com/go-git/go-git/v5/storage/memory"
 )
 
-// Data contain all the information recovered of the repositories
-type Data struct {
-	data struct {
-		repository struct {
-		}
-	}
-	Path string `json:"path"`
-}
-
 type RepoInfo struct {
 	Url  string
 	Hash string
@@ -57,7 +48,7 @@ func readData(data []byte) (repos []RepoInfo) {
 	return
 }
 
-func readRepo(path string, hash string) {
+func readRepo(path string, hash string) (files []object.File) {
 	repo, err := git.Clone(memory.NewStorage(), nil, &git.CloneOptions{
 		URL: path,
 	})
@@ -68,10 +59,12 @@ func readRepo(path string, hash string) {
 	if err != nil {
 		log.Fatalf("Sorry, but we haven't be able to read the commit %s", err)
 	}
-	fmt.Printf(commit.String())
-	for _, file := range findDokerfiles(commit.Tree()) {
-		fmt.Printf("File: %s\n", file.Name)
-	}
+	// fmt.Printf(commit.String())
+	// for _, file := range findDokerfiles(commit.Tree()) {
+	// 	fmt.Printf("File: %s\n", file.Name)
+	// }
+	files = findDokerfiles(commit.Tree())
+	return
 }
 
 func findDokerfiles(tree *object.Tree, err error) (files []object.File) {
@@ -85,16 +78,44 @@ func findDokerfiles(tree *object.Tree, err error) (files []object.File) {
 	return
 }
 
+func readFile(file object.File) (from string) {
+	log.Fatalf("Sorry, we haven't be able to complete this implementation yet, keep tuned")
+	return
+}
+
+func defaultImplementation(url *string) {
+	jsonOutput := "{\n\"data\": {\n"
+	file := downloadFile(*url)
+	repos := readData(file)
+	for _, element := range repos {
+		jsonOutput = jsonOutput + "\"" + element.Url + ":" + element.Hash + "\": {\n"
+		dockerfiles := readRepo(element.Url, element.Hash)
+		for _, file := range dockerfiles {
+			jsonOutput = jsonOutput + `"` + file.Name + "\": [\n"
+			// for _, imageFrom := range readFile(file) {
+			// 	jsonOutput = jsonOutput + `"` + imageFrom + `",`
+			// }
+			jsonOutput = jsonOutput + "],\n"
+		}
+		jsonOutput = jsonOutput + "},\n"
+	}
+	jsonOutput = jsonOutput + "}\n}"
+	fmt.Printf(jsonOutput)
+}
+
+func fixedImplementation(url *string) {
+	log.Fatalf("Sorry, we haven't be able to complete this implementation yet, keep tuned")
+}
+
 func main() {
 	url := flag.String("url", "", "You need put the URL from download the file")
+	fix := flag.Bool("fix", false, "By default it's false, but if you want to see the implementation with teh correct JSON change at true")
 	flag.Parse()
 
-	if *url != "" {
-		file := downloadFile(*url)
-		repos := readData(file)
-		for _, element := range repos {
-			readRepo(element.Url, element.Hash)
-		}
+	if *url != "" && *fix {
+		fixedImplementation(url)
+	} else if *url != "" {
+		defaultImplementation(url)
 	} else {
 		flag.Usage()
 	}
