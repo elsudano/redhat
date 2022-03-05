@@ -11,6 +11,7 @@ import (
 
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/storage/memory"
 )
 
@@ -20,15 +21,7 @@ type Data struct {
 		repository struct {
 		}
 	}
-	Path         string `json:"path"`
-	Denomination string `json:"displayName"`
-	Description  string `json:"annotation"`
-	// Image        string `json:"image"`
-	CPU struct {
-		Processors int `json:"processors"`
-	}
-	PowerStatus string `json:"power_state"`
-	Memory      int    `json:"memory"`
+	Path string `json:"path"`
 }
 
 type RepoInfo struct {
@@ -75,6 +68,20 @@ func readRepo(path string, hash string) {
 		log.Fatalf("Sorry, but we haven't be able to read the commit %s", err)
 	}
 	fmt.Printf(commit.String())
+	findDokerfile(commit.Tree())
+}
+
+func findDokerfile(path_in *object.Tree, err error) (path_out string) {
+	for _, entry := range path_in.Entries {
+		if !entry.Mode.IsFile() {
+			path_out = entry.Name + "/" + findDokerfile(path_in.Tree(entry.Name))
+			fmt.Printf("Dir: %s\n", path_out)
+		} else {
+			path_out = entry.Name
+			fmt.Printf("File: %s\n", path_out)
+		}
+	}
+	return
 }
 
 func main() {
