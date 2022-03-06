@@ -63,12 +63,13 @@ Please feel free to implement any additional features that make this project mor
 - In order to test the 2 implementations it can be executed as follows:
   - default:
   ```go
-  go run . -url <URL of text file>
+  go run . -url <URL of text file> | jq .
   ```
   - the improved one:
   ```go 
-  go run . -url <URL of text file> -fix
+  go run . -url <URL of text file> -fix | jq .
   ```
+- If you want, you can use the [jq](https://stedolan.github.io/jq/) command in order to see formmated the output
 
 <!-- if you want to generate again the documentation run: gomarkdoc -e -o README.md -->
 <!-- gomarkdoc:embed:start -->
